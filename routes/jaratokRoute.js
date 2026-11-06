@@ -10,26 +10,31 @@ router.get('/', async (req, res) => {
     const {legitarsasag} = req.query;
     let {honnan, hova} = req.query;
 
+    if (!honnan || honnan.length > 3 || !hova || hova > 3) {
+        res.status(400).json({ hiba: 'Az induló és végállomások 3 karakter hosszú kódját adja meg' });
+        return;
+    }
+
     if(legitarsasag) {
         params.push(legitarsasag);
         szurok.push(`legitarsasagok.kod = ?`);
     }
     if(honnan){
         params.push(honnan);
-        szurok.push(``);
+        szurok.push(`indul.kod = ?`);
     }
     if(hova){
         params.push(hova);
-        szurok.push(``);
+        szurok.push(`vegallomas.kod = ?`);
     }
 
-    let sql = `SELECT * FROM jaratok JOIN legitarsasagok ON jaratok.legitarsasag_id = legitarsasagok.id JOIN repuloterek r1 ON r1.id = jaratok.honnan_id JOIN repuloterek r2 ON r2.id = jaratok.hova_id`;
+    let sql = `SELECT jaratok.jaratszam, jaratok.indulas FROM jaratok JOIN repuloterek indul ON jaratok.honnan_id = indul.id JOIN repuloterek vegallomas ON jaratok.hova_id = vegallomas.id`;
 
     if (szurok.length > 0) {
         sql += ` WHERE ${szurok.join(' AND ')}`;
     }
 
-    try {
+    try {   
         const [results] = await pool.query(sql, params);
         res.json({ jaratok: results });
     } catch (error) {
